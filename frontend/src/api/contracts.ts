@@ -1,11 +1,27 @@
 import { api } from './axios';
 
-// Add 'export' here
+// Update the Contract interface to include client and freelancer
 export interface Contract {
   id: string;
   title: string;
   status: 'active' | 'pending' | 'completed';
-  milestones?: { id: string; title: string; status: 'pending' | 'submitted' | 'approved' }[];
+  milestones?: { 
+    id: string; 
+    title: string; 
+    status: 'pending' | 'submitted' | 'approved';
+    createdAt?: string;
+  }[];
+  // Add these properties
+  client?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  freelancer?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
 }
 
 export const listContracts = async ({ page = 1, limit = 20 }: { page?: number; limit?: number } = {}): Promise<Contract[]> => {

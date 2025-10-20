@@ -18,11 +18,27 @@ import ReviewsPage from './pages/reviews/ReviewsPage';
 import WriteReviewPage from './pages/reviews/WriteReviewPage';
 import FreelancerDashboard from './pages/dashboards/FreelancerDashboard';
 import ClientDashboard from './pages/dashboards/ClientDashboard';
+import { Button } from '@/components/ui/button';
+
+const ErrorPage = () => (
+  <div className="flex items-center justify-center min-h-screen px-4 bg-gradient-to-br from-indigo-50 to-sky-50">
+    <div className="w-full max-w-md p-8 text-center glass rounded-2xl">
+      <h1 className="mb-4 text-2xl font-bold text-indigo-800">Something went wrong</h1>
+      <p className="mb-6 text-indigo-600">An unexpected error occurred. Please try again later.</p>
+      <a href="/">
+        <Button variant="gradient" className="bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-600 hover:to-sky-600">
+          Go to Home
+        </Button>
+      </a>
+    </div>
+  </div>
+);
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <RootLayout />,
+    errorElement: <ErrorPage />,
     children: [
       { index: true, element: <HomePage /> },
       { path: 'jobs', element: <BrowseJobsPage /> },
@@ -32,7 +48,7 @@ const router = createBrowserRouter([
       { path: 'signup', element: <SignupPage /> },
       { path: 'post-job', element: <PostJobPage /> },
       { path: 'wallet', element: <WalletPage /> },
-      { path: 'contracts', element: <ContractsPage /> },
+      { path: 'contracts', element: <ContractsPage />, errorElement: <ErrorPage /> },
       { path: 'contracts/:id', element: <ContractDetailsPage /> },
       { path: 'messages', element: <MessagesPage /> },
       { path: 'messages/:id', element: <ThreadPage /> },

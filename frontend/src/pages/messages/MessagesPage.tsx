@@ -17,14 +17,14 @@ interface Thread {
 
 const ThreadCard = React.memo(({ thread }: { thread: Thread }) => (
   <motion.div
-    initial={{ opacity: 0, y: 10 }}
+    initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.3 }}
+    transition={{ duration: 1 }}
   >
     <Link to={`/messages/${thread.id}`}>
       <Card className={cn(
-        'glass hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]',
-        'border-indigo-200'
+        'glass hover:shadow-lg transition-all duration-300 transform hover:scale-[1.02]',
+        'border-gray-200'
       )}>
         <CardHeader className="flex flex-row items-center gap-3">
           <Avatar className="w-10 h-10">
@@ -34,16 +34,16 @@ const ThreadCard = React.memo(({ thread }: { thread: Thread }) => (
             </AvatarFallback>
           </Avatar>
           <div>
-            <div className="font-medium text-indigo-800">
+            <div className="font-medium text-indigo-900">
               {thread.title || thread.lastMessage?.sender?.name || thread.lastMessage?.senderId || 'Thread'}
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-gray-600">
               {thread.lastMessage?.content?.substring(0, 50) || 'No messages yet'}
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-xs text-indigo-600">
+          <p className="text-xs text-gray-500">
             {thread.lastMessage?.timestamp ? formatDate(thread.lastMessage.timestamp) : 'No date'}
           </p>
         </CardContent>
@@ -53,35 +53,47 @@ const ThreadCard = React.memo(({ thread }: { thread: Thread }) => (
 ));
 
 export default function MessagesPage() {
-  const [threads, setThreads] = useState<Thread[] | null>(null);
+  const [threads, setThreads] = useState<Thread[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const { lastMessage } = useWebSocket('ws://api.skilllink.com/notifications', {
     onMessage: (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'new_message') {
-        setThreads((prev) => {
-          if (!prev) return prev;
-          const updated = [...prev];
-          const index = updated.findIndex((t) => t.id === data.threadId);
-          if (index !== -1) {
-            updated[index] = { ...updated[index], lastMessage: data.message };
-            return updated.sort((a, b) => new Date(b.lastMessage?.timestamp || 0).getTime() - new Date(a.lastMessage?.timestamp || 0).getTime());
-          }
-          return [data.thread, ...prev];
-        });
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'new_message' && data.threadId && data.message) {
+          setThreads((prev) => {
+            const updated = [...(prev || [])];
+            const index = updated.findIndex((t) => t.id === data.threadId);
+            if (index !== -1) {
+              updated[index] = { ...updated[index], lastMessage: data.message };
+            } else {
+              updated.unshift({ id: data.threadId, lastMessage: data.message });
+            }
+            return updated.sort((a, b) => 
+              new Date(b.lastMessage?.timestamp || 0).getTime() - 
+              new Date(a.lastMessage?.timestamp || 0).getTime()
+            );
+          });
+        }
+      } catch (e) {
+        console.error('WebSocket message parsing error:', e);
+        setError('Failed to process real-time update. Please refresh.');
       }
     },
+    shouldReconnect: () => true,
+    reconnectAttempts: 5,
+    reconnectInterval: 2000,
   });
 
   const fetchThreads = useCallback(async () => {
     try {
       setLoading(true);
       const data = await listThreads();
-      setThreads(data);
+      setThreads(Array.isArray(data) ? data : []);
     } catch (e: any) {
-      setError(e.message);
+      console.error('API error:', e);
+      setError(e.message || 'Failed to load messages. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -92,25 +104,25 @@ export default function MessagesPage() {
   }, [fetchThreads]);
 
   return (
-    <div className="min-h-screen px-4 py-12 animated-bg">
+    <div className="min-h-screen px-4 py-12 bg-gradient-to-br from-indigo-100 to-gray-100">
       <div className="container max-w-4xl mx-auto">
         <motion.h1
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8 text-3xl font-bold text-center text-indigo-800"
+          transition={{ duration: 1 }}
+          className="mb-8 text-3xl font-bold text-center text-indigo-900"
         >
           Messages
         </motion.h1>
         <div className="mb-6 text-center">
           <Link to="/messages/new">
-            <Button className="bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-600 hover:to-sky-600">
+            <Button className="bg-gradient-to-r from-indigo-600 to-gray-400 hover:from-indigo-700 hover:to-gray-500">
               Start New Chat
             </Button>
           </Link>
         </div>
         <AnimatePresence>
-          {loading ? (
+          {loading && !threads.length ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -128,7 +140,7 @@ export default function MessagesPage() {
             >
               {error}
             </motion.div>
-          ) : !threads || threads.length === 0 ? (
+          ) : !threads.length ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
